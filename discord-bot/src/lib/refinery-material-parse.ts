@@ -89,69 +89,139 @@ function isNoiseRefineryLine(line: string) {
   );
 }
 
+/** Alleen het rechterpaneel met ertsregels; voorkomt sidebar (Raw) + manifest-getallen. */
+function sliceMaterialsSelectedRegion(text: string): string {
+  const idx = text.search(/MATERIALS\s+SELECTED/i);
+  if (idx < 0) return text;
+  const rest = text.slice(idx);
+  const end = rest.search(/\n\s*TOTAL\s+COST\b/i);
+  return (end > 0 ? rest.slice(0, end) : rest).slice(0, 4000);
+}
+
+function collectQtyYieldFromFollowingLines(lines: string[], startIdx: number): number[] {
+  const nums: number[] = [];
+  for (let k = startIdx; k < Math.min(startIdx + 8, lines.length); k++) {
+    const seg = lines[k]!;
+    if (k > startIdx && /\(ORE\)/i.test(seg)) break;
+    for (const m of seg.toUpperCase().matchAll(/\b(\d{2,5})\b/g)) {
+      const n = Number(m[1]);
+      if (Number.isFinite(n) && n >= 10 && n !== 2999) {
+        nums.push(n);
+        if (nums.length >= 2) return nums;
+      }
+    }
+  }
+  return nums;
+}
+
+function dedupeOrePairs(
+  pairs: Array<{ resourceSlug: string; qty: number; yld: number; confidence: number }>,
+): { inputs: ParsedEntry[]; outputs: ParsedEntry[] } {
+  const bySlug = new Map<
+    string,
+    { resourceSlug: string; qty: number; yld: number; confidence: number }
+  >();
+  for (const p of pairs) {
+    if (p.qty < p.yld) continue;
+    const prev = bySlug.get(p.resourceSlug);
+    if (!prev || p.confidence > prev.confidence) {
+      bySlug.set(p.resourceSlug, p);
+    }
+  }
+  const inputs: ParsedEntry[] = [];
+  const outputs: ParsedEntry[] = [];
+  for (const p of bySlug.values()) {
+    inputs.push({ resourceSlug: p.resourceSlug, qty: p.qty, confidence: p.confidence });
+    outputs.push({ resourceSlug: p.resourceSlug, qty: p.yld, confidence: p.confidence });
+  }
+  return { inputs, outputs };
+}
+
 /**
- * Parseert SC-raffinage-tabelregels: materiaal + QTY + YIELD (twee getallen).
- * Input = ruwe hoeveelheid erts, output = verwachte yield (refined).
+ * Parseert SC-raffinage: alleen regels met (ORE) in het MATERIALS SELECTED-blok.
+ * QTY = ruwe erts-SCU, YIELD = wat je na raffinage overhoudt (UI-kolom).
+ * Getallen mogen op de volgende regels staan (typisch voor OCR).
  */
 export function parseRefineryQtyYieldRows(
   text: string,
   resources: ResourceLite[],
 ): { inputs: ParsedEntry[]; outputs: ParsedEntry[] } {
-  const inputs: ParsedEntry[] = [];
-  const outputs: ParsedEntry[] = [];
-  const lines = text
+  const focused = sliceMaterialsSelectedRegion(text);
+  const lines = focused
     .split(/\r?\n/)
     .map((l) => fixMaterialLineTypos(l.trim()))
     .filter(Boolean);
 
-  for (const line of lines) {
+  const pairs: Array<{ resourceSlug: string; qty: number; yld: number; confidence: number }> = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
     if (isNoiseRefineryLine(line)) continue;
     const upper = line.toUpperCase();
+    if (/\(RAW\)/i.test(line)) continue;
+    if (!/\(ORE\)/i.test(line)) continue;
+
     const best = bestResourceMatch(upper, resources);
     if (!best || best.score < 0.45) continue;
 
-    const hasOre = /\(ORE\)|\bORE\b/.test(upper);
-    const resMeta = resources.find((r) => r.slug === best.slug);
-    const nameHit =
-      upper.includes(best.slug.replace(/-/g, " ").toUpperCase()) ||
-      Boolean(resMeta && upper.includes(resMeta.name.toUpperCase()));
-    if (!hasOre && !nameHit && best.score < 0.65) continue;
-
-    const nums = [...upper.matchAll(/\b(\d{2,5})\b/g)]
-      .map((m) => Number(m[1]))
-      .filter((n) => Number.isFinite(n) && n >= 10);
-
+    const nums = collectQtyYieldFromFollowingLines(lines, i);
     if (nums.length < 2) continue;
 
-    let qty: number;
-    let yld: number;
-    if (nums.length === 2) {
-      [qty, yld] = nums;
-    } else {
-      const a = nums[0]!;
-      const b = nums[1]!;
-      const c = nums[2]!;
-      if (nums.length >= 3 && Math.abs(a - (b + c)) <= 2) {
-        qty = b;
-        yld = c;
-      } else {
-        qty = nums[nums.length - 2]!;
-        yld = nums[nums.length - 1]!;
-      }
+    let qty = nums[0]!;
+    let yld = nums[1]!;
+    if (nums.length >= 3 && Math.abs(nums[0]! - (nums[1]! + nums[2]!)) <= 2) {
+      qty = nums[1]!;
+      yld = nums[2]!;
     }
 
-    if (qty === 2999 || yld === 2999) continue;
     if (qty > 50000 || yld > 50000) continue;
-
     if (qty < yld) {
       const t = qty;
       qty = yld;
       yld = t;
     }
 
-    inputs.push({ resourceSlug: best.slug, qty, confidence: best.score });
-    outputs.push({ resourceSlug: best.slug, qty: yld, confidence: best.score });
+    pairs.push({ resourceSlug: best.slug, qty, yld, confidence: best.score });
   }
 
-  return { inputs, outputs };
+  const deduped = dedupeOrePairs(pairs);
+  if (deduped.inputs.length > 0) return deduped;
+
+  return parseRefineryQtyYieldRowsFallback(text, resources);
+}
+
+/** Fallback als MATERIALS SELECTED ontbreekt in OCR. */
+function parseRefineryQtyYieldRowsFallback(
+  text: string,
+  resources: ResourceLite[],
+): { inputs: ParsedEntry[]; outputs: ParsedEntry[] } {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => fixMaterialLineTypos(l.trim()))
+    .filter(Boolean);
+  const pairs: Array<{ resourceSlug: string; qty: number; yld: number; confidence: number }> = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    if (isNoiseRefineryLine(line)) continue;
+    const upper = line.toUpperCase();
+    if (/\(RAW\)/i.test(line)) continue;
+    if (!/\(ORE\)/i.test(line)) continue;
+
+    const best = bestResourceMatch(upper, resources);
+    if (!best || best.score < 0.45) continue;
+
+    const nums = collectQtyYieldFromFollowingLines(lines, i);
+    if (nums.length < 2) continue;
+
+    let qty = nums[0]!;
+    let yld = nums[1]!;
+    if (qty < yld) {
+      const t = qty;
+      qty = yld;
+      yld = t;
+    }
+    pairs.push({ resourceSlug: best.slug, qty, yld, confidence: best.score });
+  }
+  return dedupeOrePairs(pairs);
 }

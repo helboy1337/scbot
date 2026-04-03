@@ -306,6 +306,11 @@ function augmentTextForLocationMatch(rawText: string): string {
 }
 
 export function inferRefineryMethodFromText(rawText: string): string | null {
+  /** UI toont methode vaak slecht in OCR; tagline onder XCR staat wél leesbaar. */
+  if (/HIGH\s*SPEED\s*\/\/\s*HIGH\s*COST\s*\/\/\s*LOW\s*YIELD/i.test(rawText)) {
+    return "XCR Reaction";
+  }
+
   const compactLine = rawText.replace(/\s+/g, "").toUpperCase();
   if (/XCR|X\.?C\.?R\.?/.test(compactLine) && /REACT/.test(compactLine)) return "XCR Reaction";
 
@@ -407,7 +412,7 @@ export async function extractRefineryFromBuffer(
   resources: ResourceLite[],
   locations: LocationInferLite[] = [],
 ) {
-  const cacheKey = `refineryV6:${hashBuffer(buffer)}`;
+  const cacheKey = `refineryV7:${hashBuffer(buffer)}`;
 
   const withInference = (
     base: Omit<RefineryOcrResult, "inferredMethod" | "inferredLocationId">,
