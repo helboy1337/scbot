@@ -5,15 +5,22 @@
       "name": "Hurston",
       "slug": "hurston",
       "type": "PLANET",
-      "description": "Industriele planeet met veel mining routes.",
+      "description": "Stanton I — Hurston Dynamics; zware industrie en mining.",
       "locations": [
+        { "name": "Lorville", "slug": "lorville", "type": "LANDING_ZONE" },
         { "name": "Everus Harbor", "slug": "everus-harbor", "type": "STATION" },
-        { "name": "Lorville", "slug": "lorville", "type": "LANDING_ZONE" }
+        { "name": "HDMS Edmond", "slug": "hdms-edmond", "type": "OUTPOST" },
+        { "name": "HDMS Hadley", "slug": "hdms-hadley", "type": "OUTPOST" },
+        { "name": "HDMS Oparei", "slug": "hdms-oparei", "type": "OUTPOST" },
+        { "name": "HDMS Pinewood", "slug": "hdms-pinewood", "type": "OUTPOST" },
+        { "name": "HDMS Stanhope", "slug": "hdms-stanhope", "type": "OUTPOST" },
+        { "name": "HDMS Thedus", "slug": "hdms-thedus", "type": "OUTPOST" }
       ],
       "resources": [
         { "name": "Quantanium", "slug": "quantanium", "category": "Ore", "isMain": true },
         { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
-        { "name": "Tungsten", "slug": "tungsten", "category": "Ore", "isMain": false }
+        { "name": "Tungsten", "slug": "tungsten", "category": "Ore", "isMain": false },
+        { "name": "Iron", "slug": "iron", "category": "Ore", "isMain": false }
       ]
     },
     {
@@ -21,9 +28,10 @@
       "name": "Arial",
       "slug": "arial",
       "type": "MOON",
-      "description": "Moon van Hurston met waardevolle ertsen.",
+      "description": "Maan van Hurston.",
       "locations": [
-        { "name": "HDMS Bezdek", "slug": "hdms-bezdek", "type": "OUTPOST" }
+        { "name": "HDMS Bezdek", "slug": "hdms-bezdek", "type": "OUTPOST" },
+        { "name": "HDMS Lathan", "slug": "hdms-lathan", "type": "OUTPOST" }
       ],
       "resources": [
         { "name": "Laranite", "slug": "laranite", "category": "Ore", "isMain": true },
@@ -33,17 +41,451 @@
     },
     {
       "system": "Stanton",
+      "name": "Aberdeen",
+      "slug": "aberdeen",
+      "type": "MOON",
+      "description": "Maan van Hurston.",
+      "locations": [
+        { "name": "HDMS Anderson", "slug": "hdms-anderson", "type": "OUTPOST" },
+        { "name": "HDMS Norgaard", "slug": "hdms-norgaard", "type": "OUTPOST" }
+      ],
+      "resources": [
+        { "name": "Laranite", "slug": "laranite", "category": "Ore", "isMain": true },
+        { "name": "Tungsten", "slug": "tungsten", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "Ita",
+      "slug": "ita",
+      "type": "MOON",
+      "description": "Maan van Hurston.",
+      "locations": [
+        { "name": "HDMS Ryder", "slug": "hdms-ryder", "type": "OUTPOST" },
+        { "name": "HDMS Woodruff", "slug": "hdms-woodruff", "type": "OUTPOST" }
+      ],
+      "resources": [
+        { "name": "Agricium", "slug": "agricium", "category": "Ore", "isMain": true },
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "Magda",
+      "slug": "magda",
+      "type": "MOON",
+      "description": "Maan van Hurston.",
+      "locations": [{ "name": "HDMS Perlman", "slug": "hdms-perlman", "type": "OUTPOST" }],
+      "resources": [
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "Crusader",
+      "slug": "crusader",
+      "type": "PLANET",
+      "description": "Stanton II — gasreus; Crusader Industries scheepswerf.",
+      "locations": [
+        { "name": "Orison", "slug": "orison", "type": "LANDING_ZONE" },
+        { "name": "Port Olisar", "slug": "port-olisar", "type": "STATION" }
+      ],
+      "resources": [
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "Cellin",
+      "slug": "cellin",
+      "type": "MOON",
+      "description": "Maan van Crusader.",
+      "locations": [
+        { "name": "Hickes Research Outpost", "slug": "hickes-research-outpost", "type": "OUTPOST" },
+        { "name": "Terra Mills HydroFarm", "slug": "terra-mills-hydrofarm", "type": "OUTPOST" }
+      ],
+      "resources": [
+        { "name": "Agricium", "slug": "agricium", "category": "Ore", "isMain": true },
+        { "name": "Iron", "slug": "iron", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "Daymar",
+      "slug": "daymar",
+      "type": "MOON",
+      "description": "Maan van Crusader.",
+      "locations": [
+        { "name": "ArcCorp Mining Area 141", "slug": "arccorp-mining-area-141", "type": "OUTPOST" },
+        { "name": "Shubin Mining Facility SCD-1", "slug": "shubin-mining-facility-scd-1", "type": "OUTPOST" }
+      ],
+      "resources": [
+        { "name": "Laranite", "slug": "laranite", "category": "Ore", "isMain": true },
+        { "name": "Borase", "slug": "borase", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "Yela",
+      "slug": "yela",
+      "type": "MOON",
+      "description": "Maan van Crusader; asteroïdengordel.",
+      "locations": [
+        { "name": "ArcCorp Mining Area 157", "slug": "arccorp-mining-area-157", "type": "OUTPOST" },
+        { "name": "Deakins Research Outpost", "slug": "deakins-research-outpost", "type": "OUTPOST" },
+        { "name": "Grim HEX", "slug": "grim-hex", "type": "STATION" }
+      ],
+      "resources": [
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
+        { "name": "Titanium", "slug": "titanium", "category": "Ore", "isMain": false },
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "ArcCorp",
+      "slug": "arccorp",
+      "type": "PLANET",
+      "description": "Stanton III — volledig verstedelijkt.",
+      "locations": [
+        { "name": "Area18", "slug": "area18", "type": "LANDING_ZONE" },
+        { "name": "Baijini Point", "slug": "baijini-point", "type": "STATION" }
+      ],
+      "resources": [
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": true },
+        { "name": "Iron", "slug": "iron", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "Lyria",
+      "slug": "lyria",
+      "type": "MOON",
+      "description": "Maan van ArcCorp.",
+      "locations": [
+        { "name": "Shubin Mining Facility SAL-2", "slug": "shubin-mining-facility-sal-2", "type": "OUTPOST" },
+        { "name": "Shubin Mining Facility SAL-5", "slug": "shubin-mining-facility-sal-5", "type": "OUTPOST" }
+      ],
+      "resources": [
+        { "name": "Corundum", "slug": "corundum", "category": "Ore", "isMain": true },
+        { "name": "Tungsten", "slug": "tungsten", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "Wala",
+      "slug": "wala",
+      "type": "MOON",
+      "description": "Maan van ArcCorp.",
+      "locations": [
+        { "name": "ArcCorp Mining Area 045", "slug": "arccorp-mining-area-045", "type": "OUTPOST" },
+        { "name": "ArcCorp Mining Area 048", "slug": "arccorp-mining-area-048", "type": "OUTPOST" },
+        { "name": "ArcCorp Mining Area 056", "slug": "arccorp-mining-area-056", "type": "OUTPOST" },
+        { "name": "ArcCorp Mining Area 061", "slug": "arccorp-mining-area-061", "type": "OUTPOST" }
+      ],
+      "resources": [
+        { "name": "Quantanium", "slug": "quantanium", "category": "Ore", "isMain": true },
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
       "name": "microTech",
       "slug": "microtech",
       "type": "PLANET",
-      "description": "Koude planeet met raffinage-hubs in de regio.",
+      "description": "Stanton IV — koud; microTech hoofdkwartier.",
       "locations": [
+        { "name": "New Babbage", "slug": "new-babbage", "type": "LANDING_ZONE" },
+        { "name": "New Babbage Interstellar Spaceport", "slug": "new-babbage-interstellar-spaceport", "type": "STATION" },
         { "name": "Port Tressler", "slug": "port-tressler", "type": "STATION" },
-        { "name": "New Babbage", "slug": "new-babbage", "type": "LANDING_ZONE" }
+        { "name": "Shubin Mining Facility SM0-18", "slug": "shubin-mining-facility-sm0-18", "type": "OUTPOST" },
+        { "name": "Shubin Mining Facility SM0-22", "slug": "shubin-mining-facility-sm0-22", "type": "OUTPOST" }
       ],
       "resources": [
         { "name": "Bexalite", "slug": "bexalite", "category": "Ore", "isMain": true },
         { "name": "Borase", "slug": "borase", "category": "Ore", "isMain": false },
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "Calliope",
+      "slug": "calliope",
+      "type": "MOON",
+      "description": "Maan van microTech.",
+      "locations": [
+        { "name": "Shubin Mining Facility SMCa-6", "slug": "shubin-mining-facility-smca-6", "type": "OUTPOST" },
+        { "name": "Shubin Mining Facility SMCa-8", "slug": "shubin-mining-facility-smca-8", "type": "OUTPOST" }
+      ],
+      "resources": [
+        { "name": "Titanium", "slug": "titanium", "category": "Ore", "isMain": true },
+        { "name": "Bexalite", "slug": "bexalite", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "Clio",
+      "slug": "clio",
+      "type": "MOON",
+      "description": "Maan van microTech.",
+      "locations": [
+        { "name": "Clio Salvage Annex", "slug": "clio-salvage-annex", "type": "OUTPOST" }
+      ],
+      "resources": [
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": true },
+        { "name": "Iron", "slug": "iron", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "Euterpe",
+      "slug": "euterpe",
+      "type": "MOON",
+      "description": "Maan van microTech.",
+      "locations": [
+        { "name": "Euterpe Outpost", "slug": "euterpe-outpost", "type": "OUTPOST" }
+      ],
+      "resources": [
+        { "name": "Iron", "slug": "iron", "category": "Ore", "isMain": true },
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "ARC-L1",
+      "slug": "arc-l1",
+      "type": "MOON",
+      "description": "ArcCorp L1 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Wide Forest Station", "slug": "arc-l1-wide-forest-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
+        { "name": "Iron", "slug": "iron", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "ARC-L2",
+      "slug": "arc-l2",
+      "type": "MOON",
+      "description": "ArcCorp L2 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Lively Pathway Station", "slug": "arc-l2-lively-pathway-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
+        { "name": "Iron", "slug": "iron", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "ARC-L3",
+      "slug": "arc-l3",
+      "type": "MOON",
+      "description": "ArcCorp L3 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Modern Express Station", "slug": "arc-l3-modern-express-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "ARC-L4",
+      "slug": "arc-l4",
+      "type": "MOON",
+      "description": "ArcCorp L4 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Faint Glen Station", "slug": "arc-l4-faint-glen-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
+        { "name": "Iron", "slug": "iron", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "ARC-L5",
+      "slug": "arc-l5",
+      "type": "MOON",
+      "description": "ArcCorp L5 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Yellow Core Station", "slug": "arc-l5-yellow-core-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "HUR-L1",
+      "slug": "hur-l1",
+      "type": "MOON",
+      "description": "Hurston L1 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Green Glade Station", "slug": "hur-l1-green-glade-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Quantanium", "slug": "quantanium", "category": "Ore", "isMain": true },
+        { "name": "Tungsten", "slug": "tungsten", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "HUR-L2",
+      "slug": "hur-l2",
+      "type": "MOON",
+      "description": "Hurston L2 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Faithful Dream Station", "slug": "hur-l2-faithful-dream-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Quantanium", "slug": "quantanium", "category": "Ore", "isMain": true },
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "HUR-L3",
+      "slug": "hur-l3",
+      "type": "MOON",
+      "description": "Hurston L3 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Thundering Express Station", "slug": "hur-l3-thundering-express-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Quantanium", "slug": "quantanium", "category": "Ore", "isMain": true },
+        { "name": "Iron", "slug": "iron", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "HUR-L4",
+      "slug": "hur-l4",
+      "type": "MOON",
+      "description": "Hurston L4 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Melodic Fields Station", "slug": "hur-l4-melodic-fields-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
+        { "name": "Tungsten", "slug": "tungsten", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "HUR-L5",
+      "slug": "hur-l5",
+      "type": "MOON",
+      "description": "Hurston L5 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "High Course Station", "slug": "hur-l5-high-course-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Quantanium", "slug": "quantanium", "category": "Ore", "isMain": true },
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "CRU-L1",
+      "slug": "cru-l1",
+      "type": "MOON",
+      "description": "Crusader L1 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Ambitious Dream Station", "slug": "cru-l1-ambitious-dream-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "CRU-L4",
+      "slug": "cru-l4",
+      "type": "MOON",
+      "description": "Crusader L4 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Shallow Fields Station", "slug": "cru-l4-shallow-fields-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
+        { "name": "Iron", "slug": "iron", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "CRU-L5",
+      "slug": "cru-l5",
+      "type": "MOON",
+      "description": "Crusader L5 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Beautiful Glen Station", "slug": "cru-l5-beautiful-glen-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "MIC-L1",
+      "slug": "mic-l1",
+      "type": "MOON",
+      "description": "microTech L1 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Shallow Frontier Station", "slug": "mic-l1-shallow-frontier-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Bexalite", "slug": "bexalite", "category": "Ore", "isMain": true },
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "MIC-L2",
+      "slug": "mic-l2",
+      "type": "MOON",
+      "description": "microTech L2 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Long Forest Station", "slug": "mic-l2-long-forest-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Bexalite", "slug": "bexalite", "category": "Ore", "isMain": true },
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "MIC-L3",
+      "slug": "mic-l3",
+      "type": "MOON",
+      "description": "microTech L3 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Endless Odyssey Station", "slug": "mic-l3-endless-odyssey-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Bexalite", "slug": "bexalite", "category": "Ore", "isMain": true },
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "MIC-L4",
+      "slug": "mic-l4",
+      "type": "MOON",
+      "description": "microTech L4 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Red Crossroads Station", "slug": "mic-l4-red-crossroads-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Bexalite", "slug": "bexalite", "category": "Ore", "isMain": true },
+        { "name": "Iron", "slug": "iron", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "MIC-L5",
+      "slug": "mic-l5",
+      "type": "MOON",
+      "description": "microTech L5 Lagrange — Rest & Relax.",
+      "locations": [{ "name": "Modern Icarus Station", "slug": "mic-l5-modern-icarus-station", "type": "STATION" }],
+      "resources": [
+        { "name": "Bexalite", "slug": "bexalite", "category": "Ore", "isMain": true },
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "Stanton Orbit",
+      "slug": "stanton-orbit",
+      "type": "MOON",
+      "description": "Overige ruimtestations en hubs in Stanton.",
+      "locations": [
+        { "name": "ICC ScanHub Stanton", "slug": "icc-scanhub-stanton", "type": "STATION" },
+        { "name": "INS Jericho", "slug": "ins-jericho", "type": "STATION" },
+        { "name": "Seraphim Station", "slug": "seraphim-station", "type": "STATION" },
+        { "name": "Security Post Kareah", "slug": "security-post-kareah", "type": "STATION" },
+        { "name": "Covalex Hub Gundo", "slug": "covalex-hub-gundo", "type": "STATION" },
+        { "name": "Magnus Gateway", "slug": "magnus-gateway", "type": "STATION" },
+        { "name": "Terra Gateway", "slug": "terra-gateway", "type": "STATION" },
+        { "name": "Pyro Gateway", "slug": "pyro-gateway-stanton", "type": "STATION" }
+      ],
+      "resources": [
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
         { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": false }
       ]
     }

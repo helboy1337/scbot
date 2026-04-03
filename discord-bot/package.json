@@ -11,7 +11,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "test:refinery-ocr": "tsx scripts/test-refinery-ocr.ts"
   },
   "dependencies": {
     "@octokit/request-error": "^7.0.0",
@@ -20,6 +21,7 @@
     "discord.js": "^14.25.1",
     "dotenv": "^17.2.3",
     "prisma": "^6.19.0",
+    "sharp": "^0.34.5",
     "tesseract.js": "^7.0.0",
     "zod": "^4.3.6"
   },

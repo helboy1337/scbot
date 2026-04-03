@@ -425,7 +425,7 @@ async function handleRaffinage(interaction: ChatInputCommandInteraction) {
         !methodOpt?.trim() && ocr.inferredMethod ? `methode \`${ocr.inferredMethod}\` (OCR)` : null,
       ].filter(Boolean);
       ocrNote = [
-        `OCR: ${inputs.length} input(s), ${outputs.length} output(s), ~${Math.round(ocr.avgConfidence * 100)}% confidence`,
+        `OCR: ${inputs.length} input(s) (ruwe QTY), ${outputs.length} output(s) (yield uit UI), ~${Math.round(ocr.avgConfidence * 100)}% confidence`,
         inferBits.length ? `(${inferBits.join(", ")})` : null,
       ]
         .filter(Boolean)

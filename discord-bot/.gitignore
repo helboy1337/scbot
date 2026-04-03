@@ -3,3 +3,5 @@ dist/
 .env
 *.db
 *.db-journal
+# Tesseract.js taalmodel (lokaal gedownload)
+eng.traineddata
