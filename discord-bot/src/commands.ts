@@ -143,7 +143,26 @@ export function buildCommandBodies(): RESTPostAPIApplicationCommandsJSONBody[] {
               .setRequired(false),
           ),
       )
-      .addSubcommand((s) => s.setName("lijst").setDescription("Laatste raffinage-jobs")),
+      .addSubcommand((s) => s.setName("lijst").setDescription("Laatste raffinage-jobs"))
+      .addSubcommand((s) =>
+        s
+          .setName("wis")
+          .setDescription("Wis al jouw raffinage-jobs (optioneel ook voorraad-tracking)")
+          .addStringOption((o) =>
+            o
+              .setName("bevestig")
+              .setDescription("Typ exact: WIS")
+              .setRequired(true)
+              .setMinLength(3)
+              .setMaxLength(3),
+          )
+          .addBooleanOption((o) =>
+            o
+              .setName("ook_voorraad")
+              .setDescription("Ook alle voorraad en mutaties wissen (mining + raffinage)")
+              .setRequired(false),
+          ),
+      ),
 
     new SlashCommandBuilder()
       .setName("voorraad")

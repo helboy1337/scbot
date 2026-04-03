@@ -9,6 +9,7 @@ import {
 import { createTrackedIssue } from "./lib/github.js";
 import { applyInventoryMutation } from "./lib/inventory.js";
 import { extractEntriesFromBuffer, extractRefineryFromBuffer } from "./lib/ocr.js";
+import { estimateOreSaleSummary } from "./lib/ore-sale-estimate.js";
 import { parseResourceLines } from "./lib/parse-lines.js";
 import { prisma } from "./lib/prisma.js";
 import { ensureDiscordUser } from "./lib/user.js";
@@ -161,7 +162,7 @@ async function handleHelp(interaction: ChatInputCommandInteraction) {
     .setTitle("SC Discord-bot")
     .setDescription(
       [
-        "**Mining & raffinage:** `/mining log`, `/mining lijst`, `/raffinage log`, `/raffinage lijst`",
+        "**Mining & raffinage:** `/mining log`, `/mining lijst`, `/raffinage log`, `/raffinage lijst`, `/raffinage wis`",
         "**Voorraad:** `/voorraad toon`, `/voorraad pas_aan`",
         "**Universum:** `/universum zoek`",
         "**Profiel:** `/profiel toon`, `/profiel rsi`",
@@ -399,6 +400,29 @@ async function handleRaffinage(interaction: ChatInputCommandInteraction) {
     return;
   }
 
+  if (sub === "wis") {
+    await defer(interaction);
+    const confirm = interaction.options.getString("bevestig", true).trim().toUpperCase();
+    if (confirm !== "WIS") {
+      await interaction.editReply({
+        content: "Niet uitgevoerd. Zet **bevestig** exact op `WIS` (hoofdletters).",
+      });
+      return;
+    }
+    const ookVoorraad = interaction.options.getBoolean("ook_voorraad") ?? false;
+    const deletedJobs = await prisma.refineryJob.deleteMany({ where: { userId: discordUser.id } });
+    let voorraadMsg = "";
+    if (ookVoorraad) {
+      const mut = await prisma.inventoryMutation.deleteMany({ where: { userId: discordUser.id } });
+      const bal = await prisma.inventoryBalance.deleteMany({ where: { userId: discordUser.id } });
+      voorraadMsg = ` Voorraad gewist (${bal.count} balances, ${mut.count} mutaties).`;
+    }
+    await interaction.editReply({
+      content: `**${deletedJobs.count}** raffinage-job(s) verwijderd.${voorraadMsg}`,
+    });
+    return;
+  }
+
   if (sub === "log") {
     await defer(interaction);
     const locationIdOpt = interaction.options.getString("locatie");
@@ -539,9 +563,36 @@ async function handleRaffinage(interaction: ChatInputCommandInteraction) {
       }
     });
 
-    await interaction.editReply({
-      content: `Raffinage-job opgeslagen @ **${location.name}** (${method}).`,
-    });
+    const outputLinesForEstimate: { resourceSlug: string; qty: number; name?: string }[] = [];
+    for (const entry of outputs) {
+      const resource = await prisma.resource.findUnique({ where: { slug: entry.resourceSlug } });
+      if (!resource) continue;
+      outputLinesForEstimate.push({
+        resourceSlug: entry.resourceSlug,
+        qty: entry.qty,
+        name: resource.name,
+      });
+    }
+
+    const est = estimateOreSaleSummary(outputLinesForEstimate);
+    const replyParts = [
+      `Raffinage-job opgeslagen @ **${location.name}** (${method}).`,
+      "",
+      "**Geschatte verkoopwaarde** (output-yield × indicatieve prijs per SCU — **geen** live markt):",
+      ...est.lines,
+    ];
+    if (est.totalMin > 0 || est.totalMax > 0) {
+      replyParts.push(
+        "",
+        `**Totaal (bekende ertsen):** ~${est.totalMin.toLocaleString("nl-NL")} – ~${est.totalMax.toLocaleString("nl-NL")} aUEC`,
+      );
+    }
+    replyParts.push(
+      "",
+      "_Prijzen verschillen sterk per terminal, patch en economie; check o.a. [UEX](https://uexcorp.space/commodities) of in-game._",
+    );
+
+    await interaction.editReply({ content: replyParts.join("\n").slice(0, 2000) });
   }
 }
 
