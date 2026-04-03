@@ -2,6 +2,10 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { BodyType, LocationType, PrismaClient } from "@prisma/client";
+import {
+  REFINERY_METHOD_LABELS,
+  refineryMethodSlug,
+} from "../src/lib/refinery-methods-data.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const seed = JSON.parse(readFileSync(join(__dirname, "seed-data.json"), "utf8")) as {
@@ -19,6 +23,15 @@ const seed = JSON.parse(readFileSync(join(__dirname, "seed-data.json"), "utf8"))
 const prisma = new PrismaClient();
 
 async function main() {
+  for (const label of REFINERY_METHOD_LABELS) {
+    const slug = refineryMethodSlug(label);
+    await prisma.refineryMethod.upsert({
+      where: { slug },
+      update: { label },
+      create: { slug, label },
+    });
+  }
+
   for (const bodyData of seed.bodies) {
     const body = await prisma.celestialBody.upsert({
       where: { slug: bodyData.slug },

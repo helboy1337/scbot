@@ -5,8 +5,12 @@ import {
   type ParsedEntry,
   type ResourceLite,
 } from "./refinery-material-parse.js";
+import { REFINERY_METHOD_LABELS } from "./refinery-methods-data.js";
 
 export type { ParsedEntry, ResourceLite };
+
+/** Langere labels eerst (substring-match). Zelfde lijst als DB na seed. */
+const REFINERY_METHOD_HINTS_SORTED = [...REFINERY_METHOD_LABELS].sort((a, b) => b.length - a.length);
 
 export type MiningOcrResult = {
   rawText: string;
@@ -29,23 +33,6 @@ export type RefineryOcrResult = {
   inferredMethod: string | null;
   inferredLocationId: string | null;
 };
-
-const REFINERY_METHOD_HINTS = [
-  "XCR Reaction",
-  "Dinyx Solventech",
-  "Pyrolytic",
-  "Electrostar",
-  "Solventech",
-  "Gendrome",
-  "Dinyx",
-  "Ferron",
-  "Orkan",
-  "Excel",
-  "Sakura",
-  "Ranta",
-  "XCR",
-  "Pyro",
-];
 
 const REFINERY_METHOD_REGEX: RegExp[] = [
   /XCR\s*REACTION/i,
@@ -319,12 +306,17 @@ function augmentTextForLocationMatch(rawText: string): string {
 }
 
 export function inferRefineryMethodFromText(rawText: string): string | null {
-  const compact = rawText.replace(/\s+/g, "").toUpperCase();
-  if (/XCR|X\.?C\.?R\.?/.test(compact) && /REACT/.test(compact)) return "XCR Reaction";
+  const compactLine = rawText.replace(/\s+/g, "").toUpperCase();
+  if (/XCR|X\.?C\.?R\.?/.test(compactLine) && /REACT/.test(compactLine)) return "XCR Reaction";
 
   const lower = rawText.toLowerCase();
-  for (const hint of REFINERY_METHOD_HINTS) {
+  for (const hint of REFINERY_METHOD_HINTS_SORTED) {
     if (lower.includes(hint.toLowerCase())) return hint;
+  }
+  const textCompact = normCompact(rawText);
+  for (const hint of REFINERY_METHOD_HINTS_SORTED) {
+    const hc = normCompact(hint);
+    if (hc.length >= 4 && textCompact.includes(hc)) return hint;
   }
   for (const re of REFINERY_METHOD_REGEX) {
     const m = rawText.match(re);

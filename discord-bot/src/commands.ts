@@ -108,9 +108,10 @@ export function buildCommandBodies(): RESTPostAPIApplicationCommandsJSONBody[] {
           .addStringOption((o) =>
             o
               .setName("methode")
-              .setDescription("Bijv. Dinyx, Pyro; optioneel als het op de screenshot staat")
+              .setDescription("Kies uit lijst (database) of vul zelf; optioneel bij screenshot")
               .setRequired(false)
-              .setMaxLength(64),
+              .setMaxLength(64)
+              .setAutocomplete(true),
           )
           .addStringOption((o) =>
             o

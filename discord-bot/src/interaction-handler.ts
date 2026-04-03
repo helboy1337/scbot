@@ -74,6 +74,26 @@ export async function handleAutocomplete(interaction: AutocompleteInteraction) {
       return;
     }
 
+    if (focused.name === "methode" && interaction.commandName === "raffinage") {
+      const q = focused.value.trim().toLowerCase();
+      const methods = await prisma.refineryMethod.findMany({ orderBy: { label: "asc" } });
+      const filtered = methods
+        .filter(
+          (m) =>
+            !q ||
+            m.label.toLowerCase().includes(q) ||
+            m.slug.includes(q.replace(/\s+/g, "-")),
+        )
+        .slice(0, 25);
+      await interaction.respond(
+        filtered.map((m) => ({
+          name: m.label.slice(0, 100),
+          value: m.label.slice(0, 64),
+        })),
+      );
+      return;
+    }
+
     if (focused.name === "resource" && interaction.commandName === "voorraad") {
       const q = focused.value.trim().toLowerCase();
       const all = await prisma.resource.findMany({ take: 500 });
