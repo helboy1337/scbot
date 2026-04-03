@@ -1,0 +1,241 @@
+STAR CITIZEN RESEARCHDOSSIER
+Versie: 2026-03-30
+Doel: Praktisch onderzoeksdocument + implementatieplan voor een website met accountverificatie en refinery-prijsadvies.
+
+================================================================
+1) EXECUTIVE SUMMARY
+================================================================
+- Een Star Citizen site kan betrouwbaar gebouwd worden met community-data (vooral UEX API 2.0) plus eigen validatielogica.
+- Een "verificatie via RSI bio" is technisch mogelijk als proof-of-control patroon (tijdelijke code in bio), maar is geen officiele RSI OAuth-flow.
+- Voor mining/refining data is UEX de meest complete publieke bron voor prijzen, stations, terminals, refinery methods/yields en locatie-entiteiten.
+- Screenshot -> beste station is haalbaar met OCR + fuzzy matching + prijs/routing ranking, met handmatige fallback bij lage confidence.
+- Advies: bouw eerst een MVP met (1) handmatige invoer en (2) OCR als assist, niet als enige waarheid.
+
+================================================================
+2) AUTHENTICATIE VIA RSI BIO (PROOF-OF-CONTROL)
+================================================================
+Belangrijk:
+- Er is geen duidelijk gedocumenteerde officiele RSI publieke OAuth-flow voor third-party webapps in de onderzochte bronnen.
+- Daarom is "bio-verificatie" een praktische workaround voor account ownership proof, geen echte SSO.
+
+Aanbevolen flow:
+1. User vult RSI handle in op jouw site.
+2. Jouw backend maakt een eenmalige token aan (bijv. SCV-7K2M-9QX1), gekoppeld aan:
+   - handle
+   - nonce
+   - expires_at (bijv. 10 min)
+3. User plaatst exact die token tijdelijk in RSI profile bio.
+4. Backend leest publiek profiel en controleert of token aanwezig is.
+5. Bij match: account wordt "verified"; token direct invalid maken.
+6. User mag token weer uit bio verwijderen.
+
+Security eisen:
+- Nonce + expiry verplicht (anti replay).
+- One-time use token (na succes direct revoke).
+- Rate limiting op verify endpoint.
+- Audit log voor verify attempts.
+- Geen wachtwoorden van RSI vragen of opslaan.
+
+Operationele beperkingen:
+- Profiel/bio moet publiek leesbaar zijn.
+- Layout-wijzigingen of anti-bot maatregelen kunnen scraping breken.
+- Controleer ToS/compliance voordat je scraping inzet.
+
+Alternatief/aanvulling:
+- Verifieer met "proof phrase" op een andere publiek zichtbare RSI-veldlocatie als bio niet stabiel is.
+- Voor hogere zekerheid: combineer bio-proof met Discord of email-confirmatie.
+
+================================================================
+3) DATABRONNEN VOOR MINING/CRAFTING SITES
+================================================================
+Primaire bron:
+- UEX API 2.0: brede dekking voor commodities, prices, terminals, planets, stations, refinery methods/yields/capacities, etc.
+
+Nuttige UEX endpointgroepen:
+- commodities, commodities_prices, commodities_prices_all, commodities_prices_history
+- commodities_raw_prices, commodities_raw_averages
+- refineries_methods, refineries_yields, refineries_capacities, refineries_audits
+- terminals, terminals_distances, space_stations, planets, moons, star_systems
+
+UEX API eigenschappen:
+- Bearer token auth.
+- Quota genoemd: 172800 requests/day of 120 req/min (documentatiepagina).
+- Data is crowdsourced; kwaliteit varieert en kan fouten bevatten.
+
+Aanvullende bronnen:
+- SC Trade Tools: gebruikt gamefile data (unp4k) en heeft ook community submissions.
+- StarCitizen.tools wiki: goed voor locatie/methode context en sanity checks.
+
+Data kwaliteit strategie:
+- Sla per record "source", "updated_at", "confidence" op.
+- Gebruik multi-source checks voor kritieke velden (stationnaam, commodity mapping).
+- Markeer stale data en toon laatst bijgewerkt timestamp in UI.
+
+================================================================
+4) REFINERY/STATION/PLANEET DATAMODEL
+================================================================
+Minimaal domeinmodel:
+- refinery(id, name, terminal_id, station_id, system_id)
+- station(id, name, orbit_body, system)
+- planet_moon(id, name, type, system)
+- commodity(id, code, name, unit)
+- refinery_method(id, name, speed_class, cost_class, yield_class)
+- refinery_yield(refinery_id, commodity_id, bonus_pct, updated_at)
+- price_snapshot(terminal_id, commodity_id, buy_or_sell, price, updated_at, source_confidence)
+- distance_matrix(from_terminal_id, to_terminal_id, distance_or_time_estimate)
+
+Businessvraag "waar is smelterij + beste prijs":
+- Stap 1: bepaal refinery/station context van de user job.
+- Stap 2: pak relevante refined commodities uit de job.
+- Stap 3: zoek candidate terminals met actuele sell prices.
+- Stap 4: bereken netto score per station:
+  netto_uec = gross_sell_value - transport_cost - time_cost - uncertainty_penalty
+- Stap 5: sorteer en toon top N met confidence + timestamp.
+
+================================================================
+5) SCREENSHOT -> BESTE STATION (TECHNISCH ONTWERP)
+================================================================
+Doel:
+- User uploadt screenshot van refinery order/result.
+- Systeem herkent station/refinery/materialen/hoeveelheden.
+- Systeem adviseert beste verkooppunten.
+
+Pipeline:
+1. Upload + preprocessing
+   - crop relevante panelen
+   - grayscale + contrast boost + denoise + sharpen
+   - optional de-skew
+2. OCR extractie
+   - Tesseract of vergelijkbare OCR engine
+   - veldspecifieke OCR profielen (all-caps, numeriek, decimalen)
+3. Parsing/normalisatie
+   - parse stationnaam, commoditynamen, quantities, percentages
+   - normaliseer units (SCU etc.)
+4. Fuzzy matching
+   - station/refinery naam matchen tegen bekende terminals
+   - commodity alias mapping (typos, OCR-fouten)
+5. Pricing/ranking
+   - haal actuele prijzen op uit UEX cache/API
+   - bereken netto score + confidence
+6. Resultaat UX
+   - top 3-5 stations
+   - "waarom" uitleg (prijs, afstand, confidence)
+   - handmatige confirmatie als confidence laag is
+
+Confidence model (praktisch):
+- OCR_confidence (tekstniveau)
+- entity_match_confidence (station/material)
+- price_freshness_score (timestamp)
+- final_confidence = gewogen score van bovenstaande
+
+Fallback regels:
+- final_confidence < 0.70 => user moet station/material handmatig bevestigen.
+- Geen price data < X minuten? Waarschuw en toon "mogelijk verouderd".
+
+================================================================
+6) AANBEVOLEN ARCHITECTUUR (MVP -> PROD)
+================================================================
+Services:
+- ingest-service: sync UEX endpoints naar lokale DB/cache
+- ocr-service: screenshot parsing
+- pricing-service: prijsnormalisatie + freshness
+- rank-service: station scoring + route-cost heuristiek
+- web-api: user auth/verify + advies endpoints
+
+Storage:
+- relationele DB voor entiteiten en snapshots
+- Redis (of vergelijkbaar) voor snelle actuele prijs-cache
+
+Refresh schema:
+- High-volatility prices: elke 2-5 min (afhankelijk van rate limits)
+- Station/refinery metadata: elk uur/dag
+- Full consistency check: periodiek (bijv. 1x/dag)
+
+Observability:
+- metrics: OCR success rate, low-confidence ratio, API error rates
+- logs: verify flow, pricing latency, ranking decisions
+- alerts: stale pricing data, sync failures, parse regressies
+
+================================================================
+7) RISICOS EN COMPLIANCE
+================================================================
+Technisch:
+- OCR fouten door UI schaal, taal, compressie, overbelichting.
+- Patch updates kunnen terminologie/layout breken.
+- Community data kan inconsistent zijn.
+
+Juridisch/operationeel:
+- Controleer RSI/bron ToS voor scraping en hergebruik.
+- Gebruik publieke data en voorkom account-credential handling.
+- Communiceer duidelijk dat adviezen indicatief zijn.
+
+Mitigaties:
+- Handmatige override in UI.
+- Source confidence + last-updated tonen.
+- Feature flags voor OCR parser varianten.
+- Testset met echte screenshots per game patch.
+
+================================================================
+8) CONCREET STAPPENPLAN VOOR VOLGENDE AGENT
+================================================================
+Fase 1 - Datafundament (MVP)
+1. UEX client bouwen met Bearer token + rate limiter.
+2. Sync jobs voor commodities/prices/terminals/refineries/planets.
+3. Lokale DB schema + migraties voor entities/snapshots.
+Acceptatie:
+- Prijsquery per commodity + station werkt en toont timestamp/confidence.
+
+Fase 2 - Account verificatie
+1. Verify token generator + expiry/nonces.
+2. Profielcontrole mechanisme (publieke bio parsing).
+3. Verified account state + audit log.
+Acceptatie:
+- Happy path en expired token pad volledig getest.
+
+Fase 3 - OCR assist
+1. Upload endpoint + image preprocessing.
+2. OCR + parser voor station/material/qty.
+3. Fuzzy matcher en handmatige confirmatie-UI flow.
+Acceptatie:
+- >=80% correcte station/material herkenning op interne testset.
+
+Fase 4 - Ranking engine
+1. Netto-opbrengst formule implementeren.
+2. Distance/time heuristiek toevoegen.
+3. Top station advies + explainability output.
+Acceptatie:
+- Top result verandert logisch bij prijswijzigingen en time-cost shifts.
+
+Fase 5 - Hardening
+1. Monitoring, alerts, retries, dead-letter voor sync.
+2. E2E tests met referentie screenshots.
+3. Patch-day update checklist.
+
+================================================================
+9) BRONNEN (URLS)
+================================================================
+UEX API documentatie:
+- https://uexcorp.space/api/documentation/id/commodities_prices
+- https://uexcorp.space/api
+
+UEX mining/refinery:
+- https://uexcorp.space/mining/refineries
+- https://uexcorp.space/mining/pricing
+
+Star Citizen wiki refining:
+- https://www.starcitizen.tools/Refine
+
+SC Trade Tools:
+- https://github.com/EtienneLamoureux/sc-trade-tools
+- https://sc-trade.tools/
+
+Community OCR voorbeelden:
+- https://github.com/Radozada/StarCitizen-ScanIdentifier
+- https://github.com/AnEmortalKid/sc-refinery-tracker
+- https://shebuka.github.io/SC-Datarunner-UEX/
+
+RSI account security referentie:
+- https://robertsspaceindustries.com/en/comm-link//15414-Two-Step-Authentication-Has-LandedStar
+
+Noot over API landschap:
+- In onderzochte bronnen geen duidelijke officiele brede RSI public developer API/OAuth gevonden voor third-party websites; community tooling gebruikt daarom eigen data pipelines/crowdsourcing.

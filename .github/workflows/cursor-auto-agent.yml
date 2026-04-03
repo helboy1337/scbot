@@ -1,0 +1,48 @@
+# Triggert wanneer een issue label `auto-agent` heeft (zoals de Discord-bot aanmaakt).
+# Secret: CURSOR_API_KEY — curl naar Cursor API zie https://cursor.com/docs/background-agent/api/overview
+
+name: Cursor background agent
+
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  should-run:
+    runs-on: ubuntu-latest
+    outputs:
+      ok: ${{ steps.check.outputs.ok }}
+    steps:
+      - name: Controleren op label auto-agent
+        id: check
+        env:
+          LABELS_JSON: ${{ toJson(github.event.issue.labels) }}
+        run: |
+          if echo "$LABELS_JSON" | jq -e 'any(.name == "auto-agent")' >/dev/null 2>&1; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.action }}" = "labeled" ] && [ "${{ github.event.label.name }}" = "auto-agent" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  trigger-agent:
+    needs: should-run
+    if: needs.should-run.outputs.ok == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Placeholder — koppel Cursor Cloud Agents API
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
+          if [ -z "${CURSOR_API_KEY}" ]; then
+            echo "::warning::CURSOR_API_KEY ontbreekt. Voeg die toe onder Settings → Secrets."
+            exit 0
+          fi
+          echo "Vervang deze stap door een curl naar de Cursor Background Agent API met repo + issue-context."

@@ -1,0 +1,229 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum BodyType {
+  PLANET
+  MOON
+}
+
+enum LocationType {
+  STATION
+  LANDING_ZONE
+  OUTPOST
+}
+
+enum MutationSource {
+  MINING
+  REFINERY
+  MANUAL
+}
+
+model User {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  passwordHash      String
+  scHandle          String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  sessions          Session[]
+  memberships       OrganizationMember[]
+  miningRuns        MiningRun[]
+  refineryJobs      RefineryJob[]
+  inventoryBalances InventoryBalance[]
+  inventoryMutations InventoryMutation[]
+}
+
+model Organization {
+  id          String               @id @default(cuid())
+  name        String
+  inviteCode  String               @unique
+  createdAt   DateTime             @default(now())
+  memberships OrganizationMember[]
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  role           String       @default("MEMBER")
+  joinedAt       DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CelestialBody {
+  id          String         @id @default(cuid())
+  system      String
+  name        String         @unique
+  slug        String         @unique
+  type        BodyType
+  description String?
+  locations   Location[]
+  resources   BodyResource[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Location {
+  id               String             @id @default(cuid())
+  bodyId           String
+  name             String
+  slug             String             @unique
+  type             LocationType
+  description      String?
+  body             CelestialBody      @relation(fields: [bodyId], references: [id], onDelete: Cascade)
+  miningRuns       MiningRun[]
+  refineryJobs     RefineryJob[]
+  inventoryBalances InventoryBalance[]
+  inventoryMutations InventoryMutation[]
+
+  @@unique([bodyId, name])
+}
+
+model Resource {
+  id                String             @id @default(cuid())
+  name              String             @unique
+  slug              String             @unique
+  category          String
+  unit              String             @default("SCU")
+  bodyLinks         BodyResource[]
+  miningRunItems    MiningRunItem[]
+  refineryInputs    RefineryJobInput[]
+  refineryOutputs   RefineryJobOutput[]
+  inventoryBalances InventoryBalance[]
+  inventoryMutations InventoryMutation[]
+}
+
+model BodyResource {
+  id         String        @id @default(cuid())
+  bodyId     String
+  resourceId String
+  isMain     Boolean       @default(false)
+  notes      String?
+  body       CelestialBody @relation(fields: [bodyId], references: [id], onDelete: Cascade)
+  resource   Resource      @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([bodyId, resourceId])
+}
+
+model MiningRun {
+  id          String          @id @default(cuid())
+  userId      String
+  locationId  String
+  shipVehicle String?
+  notes       String?
+  createdAt   DateTime        @default(now())
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location    Location        @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  items       MiningRunItem[]
+  screenshots Screenshot[]
+}
+
+model MiningRunItem {
+  id          String    @id @default(cuid())
+  runId       String
+  resourceId  String
+  quantity    Float
+  unit        String
+  run         MiningRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  resource    Resource  @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+}
+
+model RefineryJob {
+  id            String             @id @default(cuid())
+  userId        String
+  locationId    String
+  method        String
+  costAuec      Int?
+  durationHours Float?
+  notes         String?
+  createdAt     DateTime           @default(now())
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location      Location           @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  inputs        RefineryJobInput[]
+  outputs       RefineryJobOutput[]
+  screenshots   Screenshot[]
+}
+
+model RefineryJobInput {
+  id          String      @id @default(cuid())
+  jobId       String
+  resourceId  String
+  quantity    Float
+  unit        String
+  job         RefineryJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  resource    Resource    @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+}
+
+model RefineryJobOutput {
+  id          String      @id @default(cuid())
+  jobId       String
+  resourceId  String
+  quantity    Float
+  unit        String
+  job         RefineryJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  resource    Resource    @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+}
+
+model Screenshot {
+  id            String      @id @default(cuid())
+  filePath      String
+  originalName  String
+  mimeType      String
+  uploadedAt    DateTime    @default(now())
+  miningRunId   String?
+  refineryJobId String?
+  miningRun     MiningRun?  @relation(fields: [miningRunId], references: [id], onDelete: Cascade)
+  refineryJob   RefineryJob? @relation(fields: [refineryJobId], references: [id], onDelete: Cascade)
+}
+
+model InventoryBalance {
+  id         String   @id @default(cuid())
+  userId     String
+  locationId String
+  resourceId String
+  quantity   Float    @default(0)
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, locationId, resourceId])
+}
+
+model InventoryMutation {
+  id          String         @id @default(cuid())
+  userId      String
+  locationId  String
+  resourceId  String
+  delta       Float
+  source      MutationSource
+  referenceId String?
+  note        String?
+  createdAt   DateTime       @default(now())
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location    Location       @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  resource    Resource       @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,51 @@
+{
+  "bodies": [
+    {
+      "system": "Stanton",
+      "name": "Hurston",
+      "slug": "hurston",
+      "type": "PLANET",
+      "description": "Industriele planeet met veel mining routes.",
+      "locations": [
+        { "name": "Everus Harbor", "slug": "everus-harbor", "type": "STATION" },
+        { "name": "Lorville", "slug": "lorville", "type": "LANDING_ZONE" }
+      ],
+      "resources": [
+        { "name": "Quantanium", "slug": "quantanium", "category": "Ore", "isMain": true },
+        { "name": "Gold", "slug": "gold", "category": "Ore", "isMain": true },
+        { "name": "Tungsten", "slug": "tungsten", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "Arial",
+      "slug": "arial",
+      "type": "MOON",
+      "description": "Moon van Hurston met waardevolle ertsen.",
+      "locations": [
+        { "name": "HDMS Bezdek", "slug": "hdms-bezdek", "type": "OUTPOST" }
+      ],
+      "resources": [
+        { "name": "Laranite", "slug": "laranite", "category": "Ore", "isMain": true },
+        { "name": "Agricium", "slug": "agricium", "category": "Ore", "isMain": true },
+        { "name": "Titanium", "slug": "titanium", "category": "Ore", "isMain": false }
+      ]
+    },
+    {
+      "system": "Stanton",
+      "name": "microTech",
+      "slug": "microtech",
+      "type": "PLANET",
+      "description": "Koude planeet met raffinage-hubs in de regio.",
+      "locations": [
+        { "name": "Port Tressler", "slug": "port-tressler", "type": "STATION" },
+        { "name": "New Babbage", "slug": "new-babbage", "type": "LANDING_ZONE" }
+      ],
+      "resources": [
+        { "name": "Bexalite", "slug": "bexalite", "category": "Ore", "isMain": true },
+        { "name": "Borase", "slug": "borase", "category": "Ore", "isMain": false },
+        { "name": "Copper", "slug": "copper", "category": "Ore", "isMain": false }
+      ]
+    }
+  ]
+}
