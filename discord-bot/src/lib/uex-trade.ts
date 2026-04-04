@@ -209,12 +209,11 @@ export function terminalAcceptsCargoBoxSize(row: UexCommodityPriceRow, maxBoxScu
   return sizes.includes(maxBoxScu);
 }
 
-/** status_sell 7 = geen vraag (terminal “vol” voor inkopen). Lagere code = meer ruimte. */
 export type SellSortOptions = {
   userScu: number;
-  /** Alleen status 1–4 (tot Medium vraag); sluit High/Very High uit. */
+  /** Only status 1–4 when true. */
   alleenRuimeVraag: boolean;
-  /** Largest cargo box (SCU) you’ll use; terminal’s `container_sizes` must include it when UEX reports it. */
+  /** Largest SCU grid box you use; must appear in UEX `container_sizes` when present. */
   maxCargoBoxScu: number | null;
 };
 
