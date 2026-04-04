@@ -53,20 +53,40 @@ jobs:
               "",
               "**Auto-agent workflow** is gestart (label `auto-agent`).",
               "",
-              "- Zet repo secret **`CURSOR_API_KEY`** in *Settings → Secrets and variables → Actions* om een Cursor Background Agent te kunnen aanroepen (zie [Cursor docs](https://cursor.com/docs/background-agent/api/overview)).",
-              "- Zonder die secret gebeurt er verder alleen dit bericht; het issue blijft voor handmatige triage.",
+              "- Secret op GitHub moet **exact** **`CURSOR_API_KEY`** heten (hoofdletters + liggende streepjes) — niet `key` of `cursor`. Waarde = alleen de key, zonder aanhalingstekens.",
+              "- Zonder geldige key faalt de volgende stap; zie **Actions** logs.",
             ].join("\n");
             await github.rest.issues.createComment({ owner, repo, issue_number, body });
 
-      - name: Optioneel — Cursor Background Agent API
+      - name: Cursor Cloud Agent — POST /v0/agents
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          REPO_CLONE_URL: ${{ github.event.repository.clone_url }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
+          set -euo pipefail
           if [ -z "${CURSOR_API_KEY}" ]; then
-            echo "::notice::CURSOR_API_KEY ontbreekt — geen API-call."
-            exit 0
+            echo "::error::Secret ontbreekt of heet verkeerd. Maak **Repository secret** met naam exact: CURSOR_API_KEY (zie Cursor Cloud Agents / dashboard)."
+            exit 1
           fi
-          echo "Voeg hier indien gewenst curl naar de Cursor Background Agent API toe."
+          REF="${DEFAULT_BRANCH:-main}"
+          PROMPT_TEXT=$(printf '%s\n\n%s\n\n%s' "GitHub issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}" "${ISSUE_BODY:-_(geen body)_}" "${ISSUE_URL}")
+          BODY=$(jq -n \
+            --arg text "$PROMPT_TEXT" \
+            --arg repo "$REPO_CLONE_URL" \
+            --arg ref "$REF" \
+            '{prompt: {text: $text}, source: {repository: $repo, ref: $ref}}')
+          echo "Roep Cursor Cloud Agents API aan…"
+          HTTP=$(curl -sS -o /tmp/cursor_agent.json -w "%{http_code}" \
+            -X POST "https://api.cursor.com/v0/agents" \
+            -H "Authorization: Bearer ${CURSOR_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+          echo "HTTP status: ${HTTP}"
+          head -c 4000 /tmp/cursor_agent.json || true
+          echo
+          case "$HTTP" in 200|201|202) ;; *) echo "::error::Cursor API gaf geen success ($HTTP). Controleer key (Cloud Agents) en API-rechten."; exit 1 ;; esac
