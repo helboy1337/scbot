@@ -89,7 +89,30 @@ export function buildCommandBodies(): RESTPostAPIApplicationCommandsJSONBody[] {
               .setRequired(false),
           ),
       )
-      .addSubcommand((s) => s.setName("lijst").setDescription("Laatste mining-runs")),
+      .addSubcommand((s) => s.setName("lijst").setDescription("Laatste mining-runs"))
+      .addSubcommand((s) =>
+        s
+          .setName("scan")
+          .setDescription("Scan-tekst van HUD: welk erts domineert + optioneel fragment-schatting (kg)")
+          .addStringOption((o) =>
+            o
+              .setName("waarde")
+              .setDescription("Plak compositie (bijv. Quantanium 32%, Gold 5%) en optioneel massa in kg")
+              .setRequired(true)
+              .setMaxLength(2000),
+          ),
+      ),
+
+    new SlashCommandBuilder()
+      .setName("scan")
+      .setDescription("Mining HUD: welk erts domineert + optioneel fragment-schatting (plak compositie + kg)")
+      .addStringOption((o) =>
+        o
+          .setName("waarde")
+          .setDescription("Compositie (bijv. Quantanium 32%, Gold 5%) en optioneel massa in kg")
+          .setRequired(true)
+          .setMaxLength(2000),
+      ),
 
     new SlashCommandBuilder()
       .setName("raffinage")

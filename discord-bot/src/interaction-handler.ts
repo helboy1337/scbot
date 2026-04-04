@@ -9,6 +9,7 @@ import {
 import { createTrackedIssue } from "./lib/github.js";
 import { applyInventoryMutation } from "./lib/inventory.js";
 import { extractEntriesFromBuffer, extractRefineryFromBuffer } from "./lib/ocr.js";
+import { formatFragmentEstimate, parseMiningScanText } from "./lib/mining-scan.js";
 import { estimateOreSaleSummary } from "./lib/ore-sale-estimate.js";
 import { parseResourceLines } from "./lib/parse-lines.js";
 import { prisma } from "./lib/prisma.js";
@@ -166,6 +167,10 @@ export async function handleChatCommand(interaction: ChatInputCommandInteraction
       case "mining":
         await handleMining(interaction);
         break;
+      case "scan":
+        await defer(interaction);
+        await handleMiningScan(interaction);
+        break;
       case "raffinage":
         await handleRaffinage(interaction);
         break;
@@ -194,7 +199,7 @@ async function handleHelp(interaction: ChatInputCommandInteraction) {
     .setTitle("SC Discord-bot")
     .setDescription(
       [
-        "**Mining & raffinage:** `/mining log`, `/mining lijst`, `/raffinage log`, `/raffinage lijst`, `/raffinage wis`",
+        "**Mining & raffinage:** `/mining log`, `/mining lijst`, `/mining scan` of `/scan`, `/raffinage log`, `/raffinage lijst`, `/raffinage wis`",
         "**Handel (UEX):** `/handel verkoop` of `/trade sell` — ook goederen die niet in de DB staan (UEX lookup)",
         "**Voorraad:** `/voorraad toon`, `/voorraad pas_aan`",
         "**Universum:** `/universum zoek`",
@@ -304,9 +309,88 @@ async function handleUniversum(interaction: ChatInputCommandInteraction) {
   });
 }
 
+async function handleMiningScan(interaction: ChatInputCommandInteraction) {
+  const waarde = interaction.options.getString("waarde", true).trim();
+  if (!waarde) {
+    await interaction.editReply({ content: "Plak de compositie uit de mining-HUD (percentages per materiaal)." });
+    return;
+  }
+
+  let resources = await prisma.resource.findMany({
+    where: { category: "Ore" },
+    select: { slug: true, name: true },
+    orderBy: { name: "asc" },
+  });
+  if (!resources.length) {
+    resources = await prisma.resource.findMany({
+      select: { slug: true, name: true },
+      orderBy: { name: "asc" },
+    });
+  }
+
+  const parsed = parseMiningScanText(waarde, resources);
+  const lines: string[] = [];
+
+  if (parsed.massKg != null) {
+    lines.push(`**Massa:** ~${parsed.massKg} kg`);
+  }
+  if (parsed.inertPercent != null && parsed.inertPercent > 0) {
+    lines.push(`**Inert materiaal:** ~${parsed.inertPercent}%`);
+  }
+
+  if (parsed.entries.length) {
+    lines.push("**Compositie:**");
+    const sorted = [...parsed.entries].sort((a, b) => b.percent - a.percent);
+    for (const e of sorted) {
+      const label = e.resourceName ?? e.rawLabel;
+      const unsure = e.resourceSlug ? "" : " *(herkenning onzeker — check spelling)*";
+      lines.push(`• ${label}: **${e.percent}%**${unsure}`);
+    }
+  }
+
+  if (parsed.dominant?.resourceSlug || parsed.dominant?.resourceName) {
+    const d = parsed.dominant;
+    const name = d.resourceName ?? d.rawLabel;
+    lines.push("", `**Dominerend erts:** **${name}** (${d.percent}%)`);
+  } else if (parsed.dominant) {
+    const d = parsed.dominant;
+    lines.push("", `**Hoogste percentage (niet in database):** ${d.rawLabel} (${d.percent}%)`);
+  } else if (!parsed.entries.length) {
+    lines.push(
+      "Geen percentages gevonden. Voorbeeld: `Quantanium 32%` of `32% Quantanium`, eventueel met `3000 kg` of `mass: 3000kg`.",
+    );
+  }
+
+  if (parsed.massKg != null) {
+    const { min, max } = formatFragmentEstimate(parsed.massKg);
+    lines.push(
+      "",
+      `**Geschat aantal brokken na breuk:** ~${min}–${max} (indicatief; sterk afhankelijk van de rots)`,
+    );
+  } else if (parsed.entries.length) {
+    lines.push(
+      "",
+      "_Tip: voeg de massa in kg toe (zoals op de HUD) voor een grove schatting van het aantal fragmenten._",
+    );
+  }
+
+  lines.push(
+    "",
+    "_Percentages komen uit jouw invoer. Fragmentschatting gebruikt een grove bandbreedte (~75–220 kg per brok, community-richtlijn, geen vaste spelwaarde)._",
+  );
+
+  await interaction.editReply({ content: lines.join("\n").slice(0, 2000) });
+}
+
 async function handleMining(interaction: ChatInputCommandInteraction) {
   const sub = interaction.options.getSubcommand();
   const discordUser = await ensureDiscordUser(interaction.user.id);
+
+  if (sub === "scan") {
+    await defer(interaction);
+    await handleMiningScan(interaction);
+    return;
+  }
 
   if (sub === "lijst") {
     await defer(interaction);
