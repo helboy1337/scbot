@@ -12,6 +12,14 @@ import { extractEntriesFromBuffer, extractRefineryFromBuffer } from "./lib/ocr.j
 import { estimateOreSaleSummary } from "./lib/ore-sale-estimate.js";
 import { parseResourceLines } from "./lib/parse-lines.js";
 import { prisma } from "./lib/prisma.js";
+import {
+  fetchCommodityPricesByDbSlug,
+  formatUexTradeLocation,
+  rankSellOpportunities,
+  resolveUexCommodityForTrade,
+  sellStatusForSeller,
+  uexCommodityPageUrl,
+} from "./lib/uex-trade.js";
 import { ensureDiscordUser } from "./lib/user.js";
 
 async function safeReply(
@@ -109,6 +117,26 @@ export async function handleAutocomplete(interaction: AutocompleteInteraction) {
           value: r.slug,
         })),
       );
+      return;
+    }
+
+    if (
+      focused.name === "goederen" &&
+      (interaction.commandName === "handel" || interaction.commandName === "trade")
+    ) {
+      const q = focused.value.trim().toLowerCase();
+      const all = await prisma.resource.findMany({ take: 500, orderBy: { name: "asc" } });
+      const res = all
+        .filter(
+          (r) => !q || r.slug.toLowerCase().includes(q) || r.name.toLowerCase().includes(q),
+        )
+        .slice(0, 25);
+      await interaction.respond(
+        res.map((r) => ({
+          name: `${r.name} (${r.slug})`.slice(0, 100),
+          value: r.slug,
+        })),
+      );
     }
   } catch {
     await interaction.respond([]);
@@ -144,6 +172,10 @@ export async function handleChatCommand(interaction: ChatInputCommandInteraction
       case "voorraad":
         await handleVoorraad(interaction);
         break;
+      case "handel":
+      case "trade":
+        await handleHandel(interaction);
+        break;
       default:
         await safeReply(interaction, { content: "Onbekend commando.", ephemeral: true });
     }
@@ -163,6 +195,7 @@ async function handleHelp(interaction: ChatInputCommandInteraction) {
     .setDescription(
       [
         "**Mining & raffinage:** `/mining log`, `/mining lijst`, `/raffinage log`, `/raffinage lijst`, `/raffinage wis`",
+        "**Handel (UEX):** `/handel verkoop` of `/trade sell` — ook goederen die niet in de DB staan (UEX lookup)",
         "**Voorraad:** `/voorraad toon`, `/voorraad pas_aan`",
         "**Universum:** `/universum zoek`",
         "**Profiel:** `/profiel toon`, `/profiel rsi`",
@@ -593,6 +626,147 @@ async function handleRaffinage(interaction: ChatInputCommandInteraction) {
     );
 
     await interaction.editReply({ content: replyParts.join("\n").slice(0, 2000) });
+  }
+}
+
+async function handleHandel(interaction: ChatInputCommandInteraction) {
+  const sub = interaction.options.getSubcommand();
+  if (sub !== "verkoop" && sub !== "sell") {
+    await safeReply(interaction, { content: "Unknown subcommand.", ephemeral: true });
+    return;
+  }
+
+  await defer(interaction);
+
+  try {
+    const goederenRaw = interaction.options.getString("goederen", true).trim();
+    const scu = interaction.options.getNumber("scu", true);
+    const alleenRuim =
+      interaction.options.getBoolean("alleen_ruime_vraag") ?? false;
+    const maxBoxScu = interaction.options.getInteger("max_box_scu");
+
+    const slugKey = goederenRaw.toLowerCase();
+    const dbResource = await prisma.resource.findUnique({ where: { slug: slugKey } });
+
+    let rows: Awaited<ReturnType<typeof fetchCommodityPricesByDbSlug>>;
+    let displayName: string;
+    let resolvedSlug: string;
+    let resolutionHint: string | null = null;
+
+    if (dbResource) {
+      displayName = dbResource.name;
+      resolvedSlug = dbResource.slug;
+      rows = await fetchCommodityPricesByDbSlug(dbResource.slug);
+      if (!rows.length) {
+        const uex = await resolveUexCommodityForTrade(dbResource.name);
+        if (uex) {
+          rows = uex.rows;
+          displayName = uex.displayName;
+          resolvedSlug = uex.slug;
+          resolutionHint = `_No UEX rows for DB slug \`${dbResource.slug}\`; matched **${uex.displayName}** on UEX._`;
+        }
+      }
+    } else {
+      const uex = await resolveUexCommodityForTrade(goederenRaw);
+      if (!uex) {
+        await interaction.editReply({
+          content: `Unknown **${goederenRaw}**: not in bot database and no UEX commodity match. Try [UEX commodities](https://uexcorp.space/commodities) or a clearer name (e.g. \`stims\`, \`iron\`).`,
+        });
+        return;
+      }
+      rows = uex.rows;
+      displayName = uex.displayName;
+      resolvedSlug = uex.slug;
+      resolutionHint =
+        uex.matchKind === "catalog"
+          ? `_Resolved from UEX catalog (your input: “${goederenRaw}” → **${uex.displayName}**, slug \`${uex.slug}\`)._`
+          : `_Resolved on UEX (not in bot database). Using **${uex.displayName}** (\`${uex.slug}\`)._`;
+    }
+
+    if (!rows.length) {
+      await interaction.editReply({
+        content: `No UEX trade rows for **${displayName}** (\`${resolvedSlug}\`). Check [UEX](https://uexcorp.space/commodities).`,
+      });
+      return;
+    }
+
+    const ranked = rankSellOpportunities(rows, {
+      userScu: scu,
+      alleenRuimeVraag: alleenRuim,
+      maxCargoBoxScu: maxBoxScu,
+    });
+
+    if (!ranked.length) {
+      const hints = [
+        "No terminals matched:",
+        "• **price > 0** and buy-side not **no demand** (status 7)",
+      ];
+      if (alleenRuim) hints.push("• **alleen_ruime_vraag** removes high fill levels");
+      if (maxBoxScu != null) {
+        hints.push(
+          `• **max_box_scu ${maxBoxScu}** — UEX \`container_sizes\` must include **${maxBoxScu}** (or unknown sizes still pass)`,
+        );
+      }
+      hints.push("", "Relax an option or try after the next UEX update (~hourly).");
+      await interaction.editReply({ content: hints.join("\n") });
+      return;
+    }
+
+    const showMax = 12;
+    const top = ranked.slice(0, showMax);
+    const lines: string[] = [
+      `**${displayName}** · sell **${scu} SCU**`,
+      "_UEX community data (not live in-game). **Buy-side status:** more room for you means the terminal wants to **fill up** — that’s **better** for selling. Less room = **worse** for you._",
+    ];
+    if (resolutionHint) lines.push("", resolutionHint);
+    if (maxBoxScu != null) {
+      lines.push(
+        "",
+        `_**max_box_scu ${maxBoxScu}**: UEX \`container_sizes\` must include **${maxBoxScu}** (rows with no size data are kept — double-check in-game)._`,
+      );
+    }
+    lines.push(
+      "",
+      `_**${rows.length}** UEX terminals · **${ranked.length}** pass filters · showing **${top.length}** best_`,
+      "",
+    );
+
+    for (let i = 0; i < top.length; i++) {
+      const r = top[i]!;
+      const stLabel = sellStatusForSeller(r.status_sell);
+      const loc = formatUexTradeLocation(r);
+      const warn = r.demandNote ? ` _${r.demandNote}_` : "";
+      lines.push(
+        `**${i + 1}.** ${loc}`,
+        `   ~**${r.price_sell.toLocaleString("en-US")}** aUEC/SCU → gross ~**${r.estGrossAuec.toLocaleString("en-US")}** aUEC · **${stLabel}**${warn}`,
+      );
+      if (maxBoxScu != null) {
+        const grids = r.container_sizes?.trim()
+          ? `\`container_sizes\`: ${r.container_sizes}`
+          : "no grid list from UEX";
+        lines.push(`   _${grids}_`);
+      }
+      lines.push("");
+    }
+
+    lines.push(
+      `[All terminals on UEX](${uexCommodityPageUrl(resolvedSlug)}) · verify in-game.`,
+    );
+
+    const embed = new EmbedBuilder()
+      .setTitle("Sell — top options")
+      .setDescription(lines.join("\n").slice(0, 4096))
+      .setColor(0x5865f2)
+      .setFooter({
+        text: `UEX · ${resolvedSlug} · game ${top[0]?.game_version ?? "?"}`,
+      });
+
+    await interaction.editReply({ embeds: [embed] });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "unknown error";
+    await interaction.editReply({
+      content: `Could not load UEX: ${msg}`,
+    });
   }
 }
 

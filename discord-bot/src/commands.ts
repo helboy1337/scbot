@@ -165,6 +165,96 @@ export function buildCommandBodies(): RESTPostAPIApplicationCommandsJSONBody[] {
       ),
 
     new SlashCommandBuilder()
+      .setName("handel")
+      .setDescription("Verkoop- en vraaghints via UEX (community, geen live spel)")
+      .addSubcommand((s) =>
+        s
+          .setName("verkoop")
+          .setDescription("Beste terminals om X SCU te verkopen (prijs + vraag niet ‘vol’)")
+          .addStringOption((o) =>
+            o
+              .setName("goederen")
+              .setDescription("DB-slug, UEX-naam of code (bijv. stims) — bot zoekt op UEX als niet in DB")
+              .setRequired(true)
+              .setAutocomplete(true),
+          )
+          .addNumberOption((o) =>
+            o
+              .setName("scu")
+              .setDescription("Hoeveel SCU je wilt verkopen")
+              .setRequired(true)
+              .setMinValue(0.01)
+              .setMaxValue(1_000_000),
+          )
+          .addBooleanOption((o) =>
+            o
+              .setName("alleen_ruime_vraag")
+              .setDescription("Strenger: alleen lage/medium vraag (geen High/Very High)")
+              .setRequired(false),
+          )
+          .addIntegerOption((o) =>
+            o
+              .setName("max_box_scu")
+              .setDescription("Grootste cargobox (SCU) — terminal moet die maat in UEX container_sizes hebben")
+              .setRequired(false)
+              .addChoices(
+                { name: "1", value: 1 },
+                { name: "2", value: 2 },
+                { name: "4", value: 4 },
+                { name: "8", value: 8 },
+                { name: "16", value: 16 },
+                { name: "24", value: 24 },
+                { name: "32", value: 32 },
+              ),
+          ),
+      ),
+
+    new SlashCommandBuilder()
+      .setName("trade")
+      .setDescription("UEX sell hints — same as /handel (English)")
+      .addSubcommand((s) =>
+        s
+          .setName("sell")
+          .setDescription("Best terminals to sell X SCU (price + demand not full)")
+          .addStringOption((o) =>
+            o
+              .setName("goederen")
+              .setDescription("DB slug, UEX name or code (e.g. stims) — resolves via UEX if not in DB")
+              .setRequired(true)
+              .setAutocomplete(true),
+          )
+          .addNumberOption((o) =>
+            o
+              .setName("scu")
+              .setDescription("SCU you want to sell")
+              .setRequired(true)
+              .setMinValue(0.01)
+              .setMaxValue(1_000_000),
+          )
+          .addBooleanOption((o) =>
+            o
+              .setName("alleen_ruime_vraag")
+              .setDescription("Stricter: low/medium demand only (exclude High/Very High)")
+              .setRequired(false),
+          )
+          .addIntegerOption((o) =>
+            o
+              .setName("max_box_scu")
+              .setDescription("Largest cargo box (SCU) — terminal must list it in UEX container_sizes")
+              .setRequired(false)
+              .addChoices(
+                { name: "1", value: 1 },
+                { name: "2", value: 2 },
+                { name: "4", value: 4 },
+                { name: "8", value: 8 },
+                { name: "16", value: 16 },
+                { name: "24", value: 24 },
+                { name: "32", value: 32 },
+              ),
+          ),
+      ),
+
+    new SlashCommandBuilder()
       .setName("voorraad")
       .setDescription("Inventory per locatie")
       .addSubcommand((s) => s.setName("toon").setDescription("Samenvatting voorraad (top balances)"))
