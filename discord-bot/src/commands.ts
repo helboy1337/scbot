@@ -56,6 +56,43 @@ export function buildCommandBodies(): RESTPostAPIApplicationCommandsJSONBody[] {
       ),
 
     new SlashCommandBuilder()
+      .setName("scan")
+      .setDescription("Mining-scan: HUD-getal → erts + stenen, of compositie-tekst parsen")
+      .addSubcommand((s) =>
+        s
+          .setName("hud")
+          .setDescription("Scanner-getal uit de HUD (bv. 3600) → welk erts en hoeveel stenen")
+          .addNumberOption((o) =>
+            o
+              .setName("getal")
+              .setDescription("Totaal uit de scanner (basiswaarde × aantal stenen 1–10)")
+              .setRequired(true)
+              .setMinValue(1)
+              .setMaxValue(500_000),
+          ),
+      )
+      .addSubcommand((s) =>
+        s
+          .setName("compositie")
+          .setDescription("Tekst met percentages (bv. 40% Gold) + optioneel SCU voor schatting")
+          .addStringOption((o) =>
+            o
+              .setName("waarde")
+              .setDescription("Compositie (bv. 40% Gold, Quantanium 12,5 — meerdere regels mag)")
+              .setRequired(true)
+              .setMaxLength(2000),
+          )
+          .addNumberOption((o) =>
+            o
+              .setName("massa_scu")
+              .setDescription("Totale rotsmassa SCU (optioneel)")
+              .setRequired(false)
+              .setMinValue(0.01)
+              .setMaxValue(100_000),
+          ),
+      ),
+
+    new SlashCommandBuilder()
       .setName("mining")
       .setDescription("Mining-run loggen en bekijken")
       .addSubcommand((s) =>

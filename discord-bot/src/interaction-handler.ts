@@ -10,6 +10,13 @@ import { createTrackedIssue } from "./lib/github.js";
 import { applyInventoryMutation } from "./lib/inventory.js";
 import { extractEntriesFromBuffer, extractRefineryFromBuffer } from "./lib/ocr.js";
 import { estimateOreSaleSummary } from "./lib/ore-sale-estimate.js";
+import { lookupScanHudValue } from "./lib/mining-scan-hud.js";
+import {
+  dominantOre,
+  estimateFracturePiecesRange,
+  estimateOreScu,
+  parseScanComposition,
+} from "./lib/mining-scan.js";
 import { parseResourceLines } from "./lib/parse-lines.js";
 import { prisma } from "./lib/prisma.js";
 import {
@@ -163,6 +170,9 @@ export async function handleChatCommand(interaction: ChatInputCommandInteraction
       case "universum":
         await handleUniversum(interaction);
         break;
+      case "scan":
+        await handleScan(interaction);
+        break;
       case "mining":
         await handleMining(interaction);
         break;
@@ -194,7 +204,7 @@ async function handleHelp(interaction: ChatInputCommandInteraction) {
     .setTitle("SC Discord-bot")
     .setDescription(
       [
-        "**Mining & raffinage:** `/mining log`, `/mining lijst`, `/raffinage log`, `/raffinage lijst`, `/raffinage wis`",
+        "**Mining & raffinage:** `/scan hud`, `/scan compositie`, `/mining log`, `/mining lijst`, `/raffinage log`, `/raffinage lijst`, `/raffinage wis`",
         "**Handel (UEX):** `/handel verkoop` of `/trade sell` — ook goederen die niet in de DB staan (UEX lookup)",
         "**Voorraad:** `/voorraad toon`, `/voorraad pas_aan`",
         "**Universum:** `/universum zoek`",
@@ -302,6 +312,147 @@ async function handleUniversum(interaction: ChatInputCommandInteraction) {
   await interaction.editReply({
     content: lines.length ? lines.slice(0, 15).join("\n") : "Geen resultaten.",
   });
+}
+
+async function handleScan(interaction: ChatInputCommandInteraction) {
+  const sub = interaction.options.getSubcommand(true);
+  if (sub === "hud") {
+    await handleScanHud(interaction);
+    return;
+  }
+  await handleScanCompositie(interaction);
+}
+
+async function handleScanHud(interaction: ChatInputCommandInteraction) {
+  await defer(interaction);
+  const getal = interaction.options.getNumber("getal", true);
+  const matches = lookupScanHudValue(getal);
+
+  const embed = new EmbedBuilder()
+    .setTitle("Scanner HUD-getal")
+    .setColor(0x2ecc71)
+    .addFields({ name: "Ingevoerde waarde", value: String(Math.round(getal)), inline: true });
+
+  if (!matches.length) {
+    embed.addFields({
+      name: "Resultaat",
+      value:
+        "Geen exacte match in de referentietabel (1–10 stenen, vaste basiswaarden per erts). " +
+        "Controleer het getal of of de tabel nog overeenkomt met jouw gameversie.",
+      inline: false,
+    });
+    embed.setFooter({
+      text: "Tabel: totaal = basiswaarde × aantal rotsen. Community-referentie; patch-afhankelijk.",
+    });
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
+  const lines = matches.map(
+    (m) =>
+      `**${m.displayName}** (\`${m.slug}\`) — **${m.stones}** ${m.stones === 1 ? "rots" : "rotsen"} ` +
+      `(${m.base} × ${m.stones} = ${getal})`,
+  );
+
+  embed.addFields({
+    name: matches.length > 1 ? "Meerdere mogelijkheden" : "Match",
+    value: lines.join("\n").slice(0, 1024),
+    inline: false,
+  });
+
+  if (matches.length > 1) {
+    embed.addFields({
+      name: "Let op",
+      value:
+        "Meerdere ertsen delen dezelfde basiswaarde (o.a. Stieron en Quantanium). " +
+        "Gebruik context op locatie of de hand-tool.",
+      inline: false,
+    });
+  }
+
+  embed.setFooter({
+    text: "Referentietabel 1–10 stenen; geen officiële CIG-datatie.",
+  });
+
+  await interaction.editReply({ embeds: [embed] });
+}
+
+async function handleScanCompositie(interaction: ChatInputCommandInteraction) {
+  await defer(interaction);
+  const waarde = interaction.options.getString("waarde", true).trim();
+  const massaScu = interaction.options.getNumber("massa_scu");
+
+  const resources = await prisma.resource.findMany({ select: { slug: true, name: true } });
+  const { lines, sumPercent, warnings } = parseScanComposition(waarde, resources);
+  const dom = dominantOre(lines);
+
+  const embed = new EmbedBuilder().setTitle("Mining-scan (compositie)").setColor(0x3498db);
+
+  if (dom) {
+    embed.addFields({
+      name: "Hoofd-erts",
+      value: `**${dom.displayName}** (\`${dom.slug}\`) — ${dom.percent}%`,
+      inline: false,
+    });
+  } else if (lines.some((l) => l.slug)) {
+    embed.addFields({
+      name: "Hoofd-erts",
+      value:
+        "Geen duidelijke keuze op het hoogste nuttige percentage. Bekijk de regels hieronder.",
+      inline: false,
+    });
+  } else {
+    embed.addFields({
+      name: "Hoofd-erts",
+      value: "Geen erts herkend. Probeer bv. `40% Gold` of `Quantanium 12,5` per regel.",
+      inline: false,
+    });
+  }
+
+  const lineTexts = lines.map((l) => {
+    if (l.isInert) return `• ${l.percent}% ${l.rawLabel} _(inert / vulstof)_`;
+    if (l.slug && l.displayName)
+      return `• ${l.percent}% ${l.rawLabel} → **${l.displayName}**`;
+    return `• ${l.percent}% ${l.rawLabel} _(geen match)_`;
+  });
+
+  embed.addFields({
+    name: "Compositie",
+    value: lineTexts.length ? lineTexts.join("\n").slice(0, 1024) : "—",
+    inline: false,
+  });
+
+  embed.addFields({
+    name: "Som percentages",
+    value: lines.length ? `${sumPercent.toFixed(1)}%` : "—",
+    inline: true,
+  });
+
+  if (massaScu != null && massaScu > 0) {
+    const oreScu = estimateOreScu(lines, massaScu);
+    const pieces = estimateFracturePiecesRange(massaScu);
+    const oreLines =
+      oreScu.map((o) => `• **${o.name}**: ~${o.scu.toFixed(2)} SCU`).join("\n") || "—";
+    embed.addFields({
+      name: `Bij massa ${massaScu} SCU`,
+      value: `${oreLines.slice(0, 900)}\n\n**Fracture-brokken (ruwe bandbreedte):** ${pieces.low}–${pieces.high}\n_Afhankelijk van laser, instellingen en patch._`,
+      inline: false,
+    });
+  } else {
+    embed.setFooter({
+      text: "Tip: optioneel `massa_scu` invullen voor SCU per erts + grove fracture-schatting.",
+    });
+  }
+
+  if (warnings.length) {
+    embed.addFields({
+      name: "Let op",
+      value: warnings.join("\n").slice(0, 1024),
+      inline: false,
+    });
+  }
+
+  await interaction.editReply({ embeds: [embed] });
 }
 
 async function handleMining(interaction: ChatInputCommandInteraction) {
