@@ -98,17 +98,47 @@ function sliceMaterialsSelectedRegion(text: string): string {
   return (end > 0 ? rest.slice(0, end) : rest).slice(0, 4000);
 }
 
+const MAX_MATERIAL_SCU = 50000;
+
+/** QTY/yield uit UI: decimale SCU (15,4 / 15.4) + gehele getallen, links-naar-rechts. */
+function extractOrderedNumbers(segment: string): number[] {
+  const found: { idx: number; val: number }[] = [];
+  const re = /\b(\d+[.,]\d{1,3})\b|\b(\d{1,5})\b/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(segment)) !== null) {
+    const dec = m[1];
+    const ints = m[2];
+    const val = dec != null ? cleanNumber(dec) : Number(ints);
+    if (!Number.isFinite(val)) continue;
+    if (val === 2999) continue;
+    if (dec == null && val < 1) continue;
+    if (dec != null && val < 0.01) continue;
+    if (val > MAX_MATERIAL_SCU) continue;
+    found.push({ idx: m.index, val });
+  }
+  found.sort((a, b) => a.idx - b.idx);
+  return found.map((f) => f.val);
+}
+
+/**
+ * Eerst getallen op dezelfde regel na "(ORE)" (voorkomt dat de volgende ertsregel meetelt),
+ * anders volgende regels. Ondersteunt kleine yields (1-cijferig) en decimale SCU.
+ */
 function collectQtyYieldFromFollowingLines(lines: string[], startIdx: number): number[] {
+  const firstLine = lines[startIdx]!;
+  const oreSplit = firstLine.split(/\(ORE\)/i);
+  const afterOre = oreSplit.length > 1 ? oreSplit[1]!.trim() : firstLine;
+  const onLine = extractOrderedNumbers(afterOre);
+  if (onLine.length >= 2) return onLine.slice(0, 2);
+
   const nums: number[] = [];
   for (let k = startIdx; k < Math.min(startIdx + 8, lines.length); k++) {
     const seg = lines[k]!;
     if (k > startIdx && /\(ORE\)/i.test(seg)) break;
-    for (const m of seg.toUpperCase().matchAll(/\b(\d{2,5})\b/g)) {
-      const n = Number(m[1]);
-      if (Number.isFinite(n) && n >= 10 && n !== 2999) {
-        nums.push(n);
-        if (nums.length >= 2) return nums;
-      }
+    for (const n of extractOrderedNumbers(seg)) {
+      if (nums.length && nums[nums.length - 1] === n) continue;
+      nums.push(n);
+      if (nums.length >= 2) return nums;
     }
   }
   return nums;
@@ -169,7 +199,7 @@ export function parseRefineryQtyYieldRows(
 
     let qty = nums[0]!;
     let yld = nums[1]!;
-    if (nums.length >= 3 && Math.abs(nums[0]! - (nums[1]! + nums[2]!)) <= 2) {
+    if (nums.length >= 3 && Math.abs(nums[0]! - (nums[1]! + nums[2]!)) <= 2.5) {
       qty = nums[1]!;
       yld = nums[2]!;
     }

@@ -412,7 +412,7 @@ export async function extractRefineryFromBuffer(
   resources: ResourceLite[],
   locations: LocationInferLite[] = [],
 ) {
-  const cacheKey = `refineryV7:${hashBuffer(buffer)}`;
+  const cacheKey = `refineryV8:${hashBuffer(buffer)}`;
 
   const withInference = (
     base: Omit<RefineryOcrResult, "inferredMethod" | "inferredLocationId">,

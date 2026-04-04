@@ -54,6 +54,19 @@ assert(p2.outputs.length === 2, `noisy outputs ${p2.outputs.length}`);
 assert(p2.inputs.find((i) => i.resourceSlug === "iron")?.qty === 680, "noisy iron qty");
 console.log("OK noisy");
 
+const decimals = `
+MATERIALS SELECTED
+GOLD (ORE) 241 15,4
+`;
+console.log("--- parseRefineryQtyYieldRows (decimal yield) ---");
+const p3 = parseRefineryQtyYieldRows(decimals, sampleResources);
+assert(p3.outputs.length === 1, "decimal outputs count");
+assert(
+  Math.abs((p3.outputs[0]!.qty ?? 0) - 15.4) < 0.01,
+  `gold decimal yield ${p3.outputs[0]!.qty}`,
+);
+console.log("OK decimal yield");
+
 const imagePath = process.argv[2];
 if (imagePath) {
   console.log(`--- extractRefineryFromBuffer file: ${imagePath} ---`);

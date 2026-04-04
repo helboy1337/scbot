@@ -1,15 +1,14 @@
 /**
- * Indicatieve verkoopprijzen (aUEC per SCU) voor erts / raffinage-output.
- * Star Citizen-prijzen verschillen per locatie, patch en vraag/aanbod — dit is een grove bandbreedte.
- * Bron: community-handel (o.a. UEX-stijl ranges), niet live gesynchroniseerd.
+ * Indicatieve verkoopprijzen (aUEC per SCU) voor refined output na raffinage.
+ * Bandbreedtes grof afgestemd op community-handel (o.a. UEX universe-gemiddelden), niet live — sterk per terminal/patch.
  */
 export type OrePriceBand = { minPerScu: number; maxPerScu: number };
 
 const ORE_SELL_PRICE_PER_SCU: Record<string, OrePriceBand> = {
-  quantanium: { minPerScu: 12000, maxPerScu: 22000 },
-  gold: { minPerScu: 6000, maxPerScu: 14000 },
-  iron: { minPerScu: 1, maxPerScu: 8 },
-  copper: { minPerScu: 4, maxPerScu: 18 },
+  quantanium: { minPerScu: 120000, maxPerScu: 155000 },
+  gold: { minPerScu: 24000, maxPerScu: 35000 },
+  iron: { minPerScu: 2400, maxPerScu: 4000 },
+  copper: { minPerScu: 2800, maxPerScu: 4000 },
   laranite: { minPerScu: 25, maxPerScu: 55 },
   agricium: { minPerScu: 15, maxPerScu: 45 },
   tungsten: { minPerScu: 12, maxPerScu: 35 },
