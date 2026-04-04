@@ -54,7 +54,7 @@ function similarity(a: string, b: string) {
   return Math.max(0, 1 - dist / maxLen);
 }
 
-function bestResourceMatch(line: string, resources: ResourceLite[]) {
+export function bestResourceMatch(line: string, resources: ResourceLite[]) {
   let best: { slug: string; score: number } | null = null;
   for (const resource of resources) {
     const slugToken = resource.slug.replace(/-/g, " ");
@@ -68,7 +68,7 @@ function bestResourceMatch(line: string, resources: ResourceLite[]) {
 }
 
 /** Typische Tesseract-fouten op game-UI. */
-function fixMaterialLineTypos(line: string) {
+export function fixMaterialLineTypos(line: string) {
   return line
     .replace(/\b1RON\b/gi, "IRON")
     .replace(/\bG0LD\b/gi, "GOLD")
