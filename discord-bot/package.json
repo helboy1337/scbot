@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "test:refinery-ocr": "tsx scripts/test-refinery-ocr.ts"
+    "test:refinery-ocr": "tsx scripts/test-refinery-ocr.ts",
+    "github:ensure-label": "tsx scripts/ensure-auto-agent-label.ts"
   },
   "dependencies": {
     "@octokit/request-error": "^7.0.0",

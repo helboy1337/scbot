@@ -13,9 +13,9 @@ export async function createTrackedIssue(input: {
   reporterTag: string;
   reporterId: string;
 }): Promise<{ htmlUrl: string; number: number } | null> {
-  const token = process.env.GITHUB_TOKEN;
-  const owner = process.env.GITHUB_REPO_OWNER;
-  const repo = process.env.GITHUB_REPO_NAME;
+  const token = process.env.GITHUB_TOKEN?.trim();
+  const owner = process.env.GITHUB_REPO_OWNER?.trim();
+  const repo = process.env.GITHUB_REPO_NAME?.trim();
 
   if (!token || !owner || !repo) {
     return null;

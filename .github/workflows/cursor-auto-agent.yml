@@ -34,7 +34,31 @@ jobs:
       issues: write
       contents: read
     steps:
-      - name: Placeholder — koppel Cursor Cloud Agents API
+      - name: Eénmalige issue-comment (auto-agent)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = "<!-- scbot-auto-agent -->";
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number, per_page: 100,
+            });
+            if (comments.some((c) => (c.body || "").includes(marker))) {
+              core.notice("Auto-agent comment bestaat al; overslaan.");
+              return;
+            }
+            const body = [
+              marker,
+              "",
+              "**Auto-agent workflow** is gestart (label `auto-agent`).",
+              "",
+              "- Zet repo secret **`CURSOR_API_KEY`** in *Settings → Secrets and variables → Actions* om een Cursor Background Agent te kunnen aanroepen (zie [Cursor docs](https://cursor.com/docs/background-agent/api/overview)).",
+              "- Zonder die secret gebeurt er verder alleen dit bericht; het issue blijft voor handmatige triage.",
+            ].join("\n");
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });
+
+      - name: Optioneel — Cursor Background Agent API
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -42,7 +66,7 @@ jobs:
         run: |
           echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
           if [ -z "${CURSOR_API_KEY}" ]; then
-            echo "::warning::CURSOR_API_KEY ontbreekt. Voeg die toe onder Settings → Secrets."
+            echo "::notice::CURSOR_API_KEY ontbreekt — geen API-call."
             exit 0
           fi
-          echo "Vervang deze stap door een curl naar de Cursor Background Agent API met repo + issue-context."
+          echo "Voeg hier indien gewenst curl naar de Cursor Background Agent API toe."
